@@ -58,9 +58,8 @@ app.post("/send-news-letter-confirmation", async (req, res) => {
         const mailOptions = {
             from: `"Sultanat Bamoun" <${process.env.SMTP_USER}>`, // Nom personnalisé
             to: email,
-            replyTo: process.env.SMTP_USER_REPLY_TO,
-            subject: "Newsletter - Culture Bamoun",
-            text: `Félicitations, ${name} ${surname}! Vous venez de vous abonner à la newsletter de Culture Bamoun.\n\n` +
+            subject: "Newsletter - Sultanat Bamoun",
+            text: `Félicitations, ${name} ${surname}! Vous venez de vous abonner à la newsletter de Sultanat Bamoun.\n\n` +
                   `Voici les détails de votre abonnement :\n` +
                   `Email: ${email}\n` +
                   `Téléphone: ${phone}\n` +
@@ -90,7 +89,6 @@ app.post('/send-contact-message', async (req, res) => {
         const mailOptions = {
             from: `"Sultanat Bamoun" <${process.env.SMTP_USER}>`, // Nom personnalisé
             to: email,
-            replyTo: process.env.SMTP_USER_REPLY_TO,
             subject: 'Confirmation de réception du formulaire de contact',
             text: `Bonjour ${firstName} ${lastName},\n\nNous avons bien reçu votre message. Voici les détails:\n\n` +
                   `Nom: ${firstName} ${lastName}\n` +
