@@ -99,7 +99,7 @@ app.post('/send-contact-message', async (req, res) => {
         };
 
         await transporter.sendMail(mailOptions);
-        res.status(200).send('Message envoyé : ' + mailOptions.to);
+        res.status(200).send('Message envoyé :' + mailOptions.to);
     } catch (error) {
         console.error('Erreur lors de l\'envoi du message ou de l\'enregistrement en base de données:', error);
         res.status(500).send('Erreur lors de l\'envoi du message ou de l\'enregistrement.');
