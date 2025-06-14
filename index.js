@@ -1,137 +1,140 @@
-const express = require("express");
-const cors = require("cors");
-const nodemailer = require("nodemailer");
-const bodyParser = require("body-parser");
-const { sequelize, connectDatabase } = require('./db'); // Importer la fonction de connexion
-const { DataTypes } = require('sequelize');
+
+
+// // Start the server
+// startServer();
+const express = require('express');
+const bodyParser = require('body-parser');
+const cors = require('cors');
+const helmet = require('helmet');
+const path = require('path');
+
+const contactRoutes = require('./routes/contactRoutes');
+const newsletterRoutes = require('./routes/newsletterRoutes');
+const bookRoutes = require('./routes/bookRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
+
+
+const sequelize = require('./config/database');
+const { Umzug, SequelizeStorage } = require('umzug');
 
 const app = express();
-app.use(cors());
-app.use(bodyParser.json());
-require('dotenv').config();
+const PORT = process.env.PORT || 3002;
+app.use(cors({
+  origin: '*'
+}));
+// ────────────────────────────────────────────────────────────────────────────────
+// 1) Sécurité HTTP : headers et HSTS
+// ────────────────────────────────────────────────────────────────────────────────
+// app.use(helmet());
+// app.use(
+//   helmet.hsts({
+//     maxAge: 31536000, // 1 an
+//     includeSubDomains: true,
+//   })
+// );
 
-// Définir les modèles
-const NewsletterSubscriber = sequelize.define('NewsletterSubscriber', {
-    name: { type: DataTypes.STRING, allowNull: false },
-    surname: { type: DataTypes.STRING, allowNull: false },
-    email: { type: DataTypes.STRING, allowNull: false },
-    phone: { type: DataTypes.STRING, allowNull: false },
-    domain: { type: DataTypes.STRING, allowNull: false }
-}, { timestamps: true });
+// ────────────────────────────────────────────────────────────────────────────────
+// 2) Rate limiting global
+// ────────────────────────────────────────────────────────────────────────────────
+// app.use(rateLimitMiddleware);
 
-const ContactMessage = sequelize.define('ContactMessage', {
-    firstName: { type: DataTypes.STRING, allowNull: false },
-    lastName: { type: DataTypes.STRING, allowNull: false },
-    email: { type: DataTypes.STRING, allowNull: false },
-    phone: { type: DataTypes.STRING, allowNull: false },
-    message: { type: DataTypes.TEXT, allowNull: false }
-}, { timestamps: true });
+// ────────────────────────────────────────────────────────────────────────────────
+// 3) Limites de taille pour le corps des requêtes (JSON et URL-encoded)
+// ────────────────────────────────────────────────────────────────────────────────
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
-// Synchroniser les modèles avec la base de données
-sequelize.sync();
+// ────────────────────────────────────────────────────────────────────────────────
+// 4) CORS strict (local + production) avec support PATCH
+// ────────────────────────────────────────────────────────────────────────────────
+// const allowedOrigins = [
+//   'http://localhost:3000',
+//   'http://127.0.0.1:3000',
+//   'https://ton-frontend.com'
+// ];
+// app.use(
+//   cors({
+//     origin: (origin, callback) => {
+//       if (!origin) return callback(null, true);
+//       if (allowedOrigins.includes(origin)) return callback(null, true);
+//       callback(new Error('CORS policy violation: Origin not allowed'));
+//     },
+//     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+//   })
+// );
 
-// Vérification de la connexion à la base de données
-connectDatabase().catch(err => {
-    console.error('Erreur lors de la connexion à la base de données, le serveur ne peut pas démarrer:', err);
-    process.exit(1);
+// ────────────────────────────────────────────────────────────────────────────────
+// 5) Documentation Swagger
+// ────────────────────────────────────────────────────────────────────────────────
+// app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// ────────────────────────────────────────────────────────────────────────────────
+// 6) Sécurisation des fichiers statiques
+// ────────────────────────────────────────────────────────────────────────────────
+app.use(
+  '/images',
+  express.static(path.join(__dirname, 'public/images'), {
+    dotfiles: 'deny',
+    index: false,
+    maxAge: '1d',
+  })
+);
+
+// ────────────────────────────────────────────────────────────────────────────────
+// Route racine
+// ────────────────────────────────────────────────────────────────────────────────
+app.get('/', (req, res) => {
+  res.send('Bonjour depuis Node.js sur Vercel !');
 });
 
-// Configurer le transporteur de messagerie
-const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
-    auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-    },
+// ────────────────────────────────────────────────────────────────────────────────
+// Routes API
+// ────────────────────────────────────────────────────────────────────────────────
+app.use('/', contactRoutes);
+app.use('/', newsletterRoutes);
+app.use('/', bookRoutes);
+
+app.use('/', reviewRoutes);
+
+// ────────────────────────────────────────────────────────────────────────────────
+// Gestion des erreurs
+// ────────────────────────────────────────────────────────────────────────────────
+app.use((req, res) => {
+  res.status(404).json({ error: 'Non trouvé' });
 });
 
-// Endpoint pour la confirmation de l'abonnement à la newsletter
-app.post("/send-news-letter-confirmation", async (req, res) => {
-    const { name, surname, email, phone, domain } = req.body;
+// ────────────────────────────────────────────────────────────────────────────────
+// Exécution des migrations Umzug + démarrage du serveur
+// ────────────────────────────────────────────────────────────────────────────────
+async function runMigrations() {
+  const umzug = new Umzug({
+    migrations: { glob: 'migrations/*.js' },
+    context: sequelize.getQueryInterface(),
+    storage: new SequelizeStorage({ sequelize, tableName: 'migrations_meta' }),
+    logger: console,
+  });
+  await umzug.up();
+  console.log('✅ Migrations exécutées');
+}
 
-    try {
-        await connectDatabase(); // Vérifier la connexion
-        await NewsletterSubscriber.create({ name, surname, email, phone, domain });
+async function startServer() {
+  try {
+    await runMigrations();
+    app.listen(PORT, () => console.log(`Serveur démarré sur le port ${PORT}`));
+    setInterval(async () => {
+      try {
+        await sequelize.query('SELECT 1');
+        console.log('DB OK');
+      } catch (e) {
+        console.error('DB erreur :', e);
+      }
+    }, 60000);
+     await sequelize.query('SELECT 1');
 
-        const mailOptions = {
-            from: `"Sultanat Bamoun" <${process.env.SMTP_USER}>`, // Nom personnalisé
-            to: email,
-            subject: "Newsletter - Sultanat Bamoun",
-            text: `Félicitations, ${name} ${surname}! Vous venez de vous abonner à la newsletter de Sultanat Bamoun.\n\n` +
-                  `Voici les détails de votre abonnement :\n` +
-                  `Email: ${email}\n` +
-                  `Téléphone: ${phone}\n` +
-                  `Nom de domaine: ${domain}\n`,
-        };
+  } catch (e) {
+    console.error('Erreur démarrage :', e);
+    setTimeout(startServer, 3002);
+  }
+}
 
-        await transporter.sendMail(mailOptions);
-        res.status(200).send("E-mail envoyé : " + mailOptions.to);
-    } catch (error) {
-        console.error('Erreur lors de l\'envoi de l\'e-mail ou de l\'enregistrement en base de données:', error);
-        res.status(500).send('Erreur lors de l\'envoi de l\'e-mail ou de l\'enregistrement.');
-    }
-});
-
-// Endpoint pour le message de contact
-app.post('/send-contact-message', async (req, res) => {
-    const { firstName, lastName, email, phone, message } = req.body;
-
-    if (!firstName || !lastName || !email || !phone || !message) {
-        return res.status(400).send('Tous les champs sont requis.');
-    }
-
-    try {
-        await connectDatabase(); // Vérifier la connexion
-        await ContactMessage.create({ firstName, lastName, email, phone, message });
-
-        const mailOptions = {
-            from: `"Sultanat Bamoun" <${process.env.SMTP_USER}>`, // Nom personnalisé
-            to: email,
-            subject: 'Confirmation de réception du formulaire de contact',
-            text: `Bonjour ${firstName} ${lastName},\n\nNous avons bien reçu votre message. Voici les détails:\n\n` +
-                  `Nom: ${firstName} ${lastName}\n` +
-                  `Email: ${email}\n` +
-                  `Téléphone: ${phone}\n` +
-                  `Message: ${message}\n\n` +
-                  `Nous vous contacterons dès que possible.\n\nMerci pour votre message !`,
-        };
-
-        await transporter.sendMail(mailOptions);
-        res.status(200).send('Message envoyé :' + mailOptions.to);
-    } catch (error) {
-        console.error('Erreur lors de l\'envoi du message ou de l\'enregistrement en base de données:', error);
-        res.status(500).send('Erreur lors de l\'envoi du message ou de l\'enregistrement.');
-    }
-});
-
-// API pour récupérer tous les abonnés à la newsletter
-app.get('/subscribers', async (req, res) => {
-    try {
-        await connectDatabase(); // Vérifier la connexion
-        const subscribers = await NewsletterSubscriber.findAll();
-        res.status(200).json(subscribers);
-    } catch (error) {
-        console.error('Erreur lors de la récupération des abonnés:', error);
-        res.status(500).send('Erreur lors de la récupération des abonnés.');
-    }
-});
-
-// API pour récupérer tous les messages de contact
-app.get('/contact-messages', async (req, res) => {
-    try {
-        await connectDatabase(); // Vérifier la connexion
-        const messages = await ContactMessage.findAll();
-        res.status(200).json(messages);
-    } catch (error) {
-        console.error('Erreur lors de la récupération des messages:', error);
-        res.status(500).send('Erreur lors de la récupération des messages.');
-    }
-});
-
-// Démarrer le serveur
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-    console.log(`Serveur en écoute sur le port ${PORT}`);
-});
+startServer();
