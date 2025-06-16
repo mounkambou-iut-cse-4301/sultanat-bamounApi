@@ -102,10 +102,10 @@ app.get('/', (req, res) => {
 // ────────────────────────────────────────────────────────────────────────────────
 // Routes API
 // ────────────────────────────────────────────────────────────────────────────────
-app.use('/contacts', contactRoutes);
-app.use('/newsletter', newsletterRoutes);
-app.use('/books', bookRoutes);
-app.use('/reviews', reviewRoutes);
+app.use('/', contactRoutes);
+app.use('/', newsletterRoutes);
+app.use('/', bookRoutes);
+app.use('/', reviewRoutes);
 
 // ────────────────────────────────────────────────────────────────────────────────
 // Gestion des erreurs
