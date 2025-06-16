@@ -39,6 +39,10 @@ BookDownloadRequest.init({
     allowNull: false,
     validate: { notEmpty: true }
   },
+    serial_number: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
         created_at: {
           type: DataTypes.DATE,
           defaultValue: DataTypes.NOW

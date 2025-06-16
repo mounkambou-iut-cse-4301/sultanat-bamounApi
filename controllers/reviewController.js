@@ -23,16 +23,31 @@ const book_title="Histoire de l'Internet au Cameroun"
 // GET - Récupérer tous les avis et leurs réponses
 exports.getAllReviews = async (req, res) => {
   try {
-    const reviews = await Review.findAll({
+    const page = parseInt(req.query.page) || 1;      // Page actuelle
+    const limit = parseInt(req.query.limit) || 10;   // Nombre d'éléments par page
+    const offset = (page - 1) * limit;
+
+    const { count, rows } = await Review.findAndCountAll({
       where: { parent_id: null },
       include: [{
         model: Review,
         as: 'replies'
       }],
-      order: [['created_at', 'DESC']]
+      order: [['created_at', 'DESC']],
+      limit,
+      offset
     });
-    res.json(reviews);
+
+    res.json({
+      currentPage: page,
+      totalPages: Math.ceil(count / limit),
+      totalReviews: count,
+      reviews: rows
+    });
+
   } catch (err) {
+    console.error("Erreur pagination des reviews :", err);
     res.status(500).json({ error: "Erreur lors de la récupération des avis." });
   }
 };
+
