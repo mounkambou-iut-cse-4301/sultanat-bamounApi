@@ -119,7 +119,7 @@ exports.requestDownload = async (req, res) => {
     });
 
     // Chemin du PDF original
-    const originalPdfPath = path.join(__dirname, '../assets/books/HISTOIRE_DE_L_INTERNET_AU_CAMEROUN_VERSION_3_09062025.pdf');
+    const originalPdfPath = path.join(__dirname, '../assets/books/HISTOIRE_DE_L_INTERNET_AU_CAMEROUN_VERSION_4_10072025.pdf');
     
     // Vérification de l'existence du fichier PDF
     if (!fs.existsSync(originalPdfPath)) {
