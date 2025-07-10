@@ -26,7 +26,7 @@ const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
 //     });
 
 //     // Chemin vers le livre PDF
-//     const bookPath = path.join(__dirname, '../assets/books/HISTOIRE_DE_L_INTERNET_AU_CAMEROUN_VERSION_4_10072025.pdf');
+//     const bookPath = path.join(__dirname, '../assets/books/HISTOIRE_DE_L_INTERNET_AU_CAMEROUN_VERSION_3_09062025.pdf');
 
 //     // Contenu de l’email
 //     const mailOptions = {
@@ -50,7 +50,7 @@ const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
 // 🌍 www.internet.cm`,
 //       attachments: [
 //         {
-//           filename: 'HISTOIRE_DE_L_INTERNET_AU_CAMEROUN_VERSION_4_10072025.pdf',
+//           filename: 'HISTOIRE_DE_L_INTERNET_AU_CAMEROUN_VERSION_3_09062025.pdf',
 //           path: bookPath,
 //           contentType: 'application/pdf'
 //         }
@@ -119,7 +119,7 @@ exports.requestDownload = async (req, res) => {
     });
 
     // Chemin du PDF original
-    const originalPdfPath = path.join(__dirname, '../assets/books/HISTOIRE_DE_L_INTERNET_AU_CAMEROUN_VERSION_4_10072025.pdf');
+    const originalPdfPath = path.join(__dirname, '../assets/books/HISTOIRE_DE_L_INTERNET_AU_CAMEROUN_VERSION_3_09062025.pdf');
     
     // Vérification de l'existence du fichier PDF
     if (!fs.existsSync(originalPdfPath)) {
